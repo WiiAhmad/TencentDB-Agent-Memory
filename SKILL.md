@@ -1,59 +1,59 @@
 ---
 name: openclaw-memory-tencentdb-setup
-description: 用于在 OpenClaw 环境中安装、配置并验证 @tencentdb-agent-memory/memory-tencentdb 插件。当用户提到"安装记忆插件""配置 memory-tencentdb""开启长期记忆/召回"或出现相关报错时应触发。
+description: Use this to install, configure, and verify the @tencentdb-agent-memory/memory-tencentdb plugin in an OpenClaw environment. Trigger when the user mentions "install the memory plugin", "configure memory-tencentdb", "enable long-term memory/recall", or reports related errors.
 version: 1.0.0
 ---
 
-## 目的
+## Purpose
 
-在不依赖外部托管记忆服务的前提下，为 OpenClaw 提供可持续的本地长期记忆能力（L0→L1→L2→L3），并完成从安装、配置到验收的一次性闭环。
+Provide OpenClaw with durable local long-term memory (L0→L1→L2→L3) without relying on an externally hosted memory service, and complete the full one-time loop from installation and configuration to acceptance verification.
 
-## 适用场景
+## Applicable scenarios
 
-- 用户要求在 OpenClaw 中安装或启用 `memory-tencentdb`
-- 用户需要配置召回、提取、画像、清理等参数
-- 用户反馈"插件已装但无记忆 / 无召回 / 无向量检索"
+- The user asks to install or enable `memory-tencentdb` in OpenClaw
+- The user needs to configure recall, extraction, persona, cleanup, or related parameters
+- The user reports "the plugin is installed but there is no memory / no recall / no vector search"
 
-## 不适用场景
+## Out-of-scope scenarios
 
-- 用户只需要解释 memory 理念，不要求实际落地
-- 用户要接入非 OpenClaw 宿主（先确认目标框架）
+- The user only wants an explanation of memory concepts and does not need a real deployment
+- The user wants to integrate with a non-OpenClaw host (confirm the target framework first)
 
-## 标准工作流
+## Standard workflow
 
-### 1) 环境预检
+### 1) Environment precheck
 
-先确认基础版本满足要求：
+First confirm the baseline versions:
 
 - OpenClaw: `>= 2026.3.13`
 - Node.js: `>= 22.16.0`
 
-执行：
+Run:
 
 ```bash
 openclaw --version
 node -v
 ```
 
-若版本不满足，先升级再继续。
+If the versions do not meet the requirements, upgrade first before continuing.
 
-### 2) 安装插件
+### 2) Install the plugin
 
-执行安装命令：
+Run the installation command:
 
 ```bash
 openclaw plugins install @tencentdb-agent-memory/memory-tencentdb
 ```
 
-如已安装则执行更新：
+If it is already installed, update it instead:
 
 ```bash
 openclaw plugins update memory-tencentdb
 ```
 
-### 3) 写入最小配置
+### 3) Write the minimal configuration
 
-编辑 `~/.openclaw/openclaw.json`，确保存在：
+Edit `~/.openclaw/openclaw.json` and ensure it contains:
 
 ```json
 {
@@ -63,20 +63,20 @@ openclaw plugins update memory-tencentdb
 }
 ```
 
-说明：该插件支持零配置启动；不补充其它字段也能运行基础能力。
+Note: this plugin supports zero-config startup; it can run the basic capabilities without adding any other fields.
 
-### 4) 按需追加推荐配置（生产常用）
+### 4) Add recommended configuration as needed (common in production)
 
-根据用户需求补充如下分组：
+Add the following groups based on the user's needs:
 
-- `capture`: 对话捕获与保留策略
-- `extraction`: L1 提取与去重
-- `pipeline`: L1→L2→L3 调度
-- `recall`: 召回数量、阈值、策略
-- `persona`: 场景与画像触发参数
-- `embedding`: 向量检索配置（远端 OpenAI 兼容）
+- `capture`: conversation capture and retention policy
+- `extraction`: L1 extraction and deduplication
+- `pipeline`: L1→L2→L3 scheduling
+- `recall`: recall count, threshold, and strategy
+- `persona`: scene and persona trigger parameters
+- `embedding`: vector search configuration (remote OpenAI-compatible service)
 
-推荐模板：
+Recommended template:
 
 ```json
 {
@@ -128,74 +128,74 @@ openclaw plugins update memory-tencentdb
 }
 ```
 
-### 5) 关键配置规则（避免隐性失败）
+### 5) Key configuration rules (avoid silent degradation)
 
-- `embedding.provider = "none"` 时，向量能力会禁用，仅保留关键词路径。
-- 若配置远端 `provider`（如 `openai` / `deepseek`），必须同时提供：
+- When `embedding.provider = "none"`, vector capabilities are disabled and only keyword search remains.
+- If a remote `provider` is configured (such as `openai` / `deepseek`), all of the following must also be provided:
   - `apiKey`
   - `baseUrl`
   - `model`
   - `dimensions`
-- 上述任一缺失时，插件会继续运行，但自动降级为非向量模式。
-- `l0l1RetentionDays`：
-  - `0` 表示不清理
-  - 非 `0` 时建议 `>=3`
-  - 若设为 `1~2`，需显式开启 `allowAggressiveCleanup`
+- If any of the above is missing, the plugin continues running but automatically degrades to non-vector mode.
+- `l0l1RetentionDays`:
+  - `0` means never clean up
+  - non-`0` values should usually be `>=3`
+  - if set to `1~2`, `allowAggressiveCleanup` must be explicitly enabled
 
-### 6) 重启并验证生效
+### 6) Restart and verify that it takes effect
 
-执行：
+Run:
 
 ```bash
 openclaw gateway restart
 ```
 
-检查项：
+Checklist:
 
-- Gateway 日志中出现 `[memory-tdai]` 前缀
-- 数据目录已创建：`~/.openclaw/state/memory-tdai/`
-- 至少包含：`conversations/`、`records/`、`scene_blocks/`、`vectors.db`
+- Gateway logs contain the `[memory-tdai]` prefix
+- The data directory has been created: `~/.openclaw/state/memory-tdai/`
+- It contains at least: `conversations/`, `records/`, `scene_blocks/`, `vectors.db`
 
-### 7) 功能冒烟测试
+### 7) Functional smoke test
 
-执行一次最小对话回路并验证：
+Run a minimal conversation loop and verify:
 
-1. 连续对话 2~3 轮，提供可记忆信息（偏好、约束、背景）。
-2. 发起新一轮对话，观察是否出现召回上下文注入。
-3. 在 Agent 中调用：
+1. Have 2~3 consecutive turns and provide memorable information (preferences, constraints, background).
+2. Start a new turn and check whether recalled context is injected.
+3. In the Agent, call:
    - `tdai_memory_search`
    - `tdai_conversation_search`
-4. 确认能检索到刚刚产生的内容。
+4. Confirm that the newly generated content can be retrieved.
 
-## 故障排查速查
+## Troubleshooting quick reference
 
-- 插件无日志：检查 `openclaw.json` 中 `memory-tencentdb.enabled` 是否为 `true`，并确认已重启 Gateway。
-- 有记录无召回：检查 `recall.enabled`、`scoreThreshold` 是否过高。
-- 无向量结果：检查 `embedding` 四元组（`apiKey/baseUrl/model/dimensions`）是否齐全。
-- 清理过猛导致历史过少：检查 `l0l1RetentionDays` 与 `allowAggressiveCleanup`。
-- 配置已改但行为不变：确认修改的是 `~/.openclaw/openclaw.json`，并再次重启 Gateway。
+- No plugin logs: check whether `memory-tencentdb.enabled` is `true` in `openclaw.json`, and confirm the Gateway was restarted.
+- Records exist but no recall: check `recall.enabled` and whether `scoreThreshold` is too high.
+- No vector results: check whether the `embedding` quartet (`apiKey/baseUrl/model/dimensions`) is complete.
+- Cleanup is too aggressive and leaves too little history: check `l0l1RetentionDays` and `allowAggressiveCleanup`.
+- Configuration changed but behavior did not: confirm you edited `~/.openclaw/openclaw.json`, then restart the Gateway again.
 
-## 安全与合规约束
+## Security and compliance constraints
 
-- 将 `apiKey` 视为敏感信息；不在聊天、日志、截图中明文扩散。
-- 优先使用环境变量注入密钥；配置示例中仅保留占位符。
-- 仅修改 `memory-tencentdb` 对应配置段，避免覆盖用户其它插件配置。
+- Treat `apiKey` as sensitive information; do not expose it in chat, logs, or screenshots.
+- Prefer injecting secrets through environment variables; keep only placeholders in configuration examples.
+- Modify only the `memory-tencentdb` configuration section, and avoid overwriting other user plugin configuration.
 
-## 完成定义（Definition of Done）
+## Definition of Done
 
-在结束任务前，必须同时满足：
+Before ending the task, all of the following must be true:
 
-- 插件安装/更新命令执行成功
-- `openclaw.json` 已存在有效 `memory-tencentdb` 配置
-- Gateway 已重启
-- `[memory-tdai]` 日志可见
-- 数据目录与关键文件已生成
-- 至少 1 次检索工具调用成功返回结果
+- The plugin install/update command succeeded
+- `openclaw.json` contains valid `memory-tencentdb` configuration
+- The Gateway has been restarted
+- `[memory-tdai]` logs are visible
+- The data directory and key files have been generated
+- At least 1 search tool call successfully returned results
 
-## 交付话术模板
+## Delivery wording template
 
-可在完成后向用户输出：
+You may tell the user after completion:
 
-- 已完成 `memory-tencentdb` 安装与配置，并重启 Gateway。
-- 已验证日志与数据目录生效，记忆链路可用。
-- 如需下一步优化，可继续调优 `recall.scoreThreshold`、`pipeline.everyNConversations`、`persona.triggerEveryN` 与 `embedding` 模型参数。
+- Completed `memory-tencentdb` installation and configuration, and restarted the Gateway.
+- Verified that logs and the data directory are active, and the memory pipeline is usable.
+- For next-step optimization, tune `recall.scoreThreshold`, `pipeline.everyNConversations`, `persona.triggerEveryN`, and `embedding` model parameters.

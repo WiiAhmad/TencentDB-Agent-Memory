@@ -15,7 +15,7 @@
 
 <div align="center">
 
-[**English**](./README.md) · [简体中文](./README_CN.md)
+[**English**](./README.md) · [Simplified Chinese](./README_CN.md)
 
 </div>
 
@@ -288,7 +288,7 @@ docker exec -it hermes-memory hermes
 <details>
 <summary><b>🔴 Level 3 · Full parameter reference</b> (ops / custom models / remote embedding)</summary>
 
-For all fields, types, and constraints see [`openclaw.plugin.json`](./openclaw.plugin.json)。
+For all fields, types, and constraints see [`openclaw.plugin.json`](./openclaw.plugin.json).
 
 - `embedding.*` — remote embedding service (OpenAI-compatible API)
 - `llm.*` — standalone LLM mode (bypass OpenClaw's built-in model and run L1/L2/L3 with a designated API)

@@ -86,7 +86,7 @@ const pendingRecallCache = new Map<string, {
  */
 const pendingRecallEndTimestamps = new Map<string, number>();
 
-// 进程级单例，避免同一进程重复启动清理器导致并发清理竞态
+// Process-level singleton to avoid concurrent cleanup races caused by starting multiple cleaners in the same process
 let sharedMemoryCleaner: LocalMemoryCleaner | undefined;
 
 /**
@@ -318,7 +318,7 @@ export default function register(api: OpenClawPluginApi) {
   // ============================
 
   // tdai_memory_search — Agent-callable L1 memory search tool
-  // TODO: implement hard per-turn call limit via before_tool_call hook + execute early-return (方案 D)
+  // TODO: implement hard per-turn call limit via before_tool_call hook + execute early-return (Plan D)
   if (cfg.recall.enabled || cfg.capture.enabled) {
   api.registerTool(
     {
@@ -406,7 +406,7 @@ export default function register(api: OpenClawPluginApi) {
   );
 
   // tdai_conversation_search — Agent-callable L0 conversation search tool
-  // TODO: implement hard per-turn call limit via before_tool_call hook + execute early-return (方案 D)
+  // TODO: implement hard per-turn call limit via before_tool_call hook + execute early-return (Plan D)
   api.registerTool(
     {
       name: "tdai_conversation_search",

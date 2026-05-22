@@ -1,289 +1,289 @@
 # Changelog
 
-本文件记录 `@tencentdb-agent-memory/memory-tencentdb` 插件的所有显著变更，格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/)。
+This file records all notable changes to the `@tencentdb-agent-memory/memory-tencentdb` plugin. The format follows [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
 ---
 
 ## [0.3.5] - 2026-05-15
 
-### 🐛 修复
+### 🐛 Fixes
 
-- **兼容 OpenClaw v2026.5.7 zod v4 子路径**：显式声明 `zod@^4.4.3` 依赖，解决 `@ai-sdk/provider-utils@4.x` 需要 `zod/v4` 子路径导出但宿主环境可能 hoist zod@3.x 引发 `Cannot find module zod/v4` 的运行时错误。
+- **Compatible with OpenClaw v2026.5.7 zod v4 subpath**: explicitly declare a `zod@^4.4.3` dependency to fix the runtime `Cannot find module zod/v4` error that occurs when `@ai-sdk/provider-utils@4.x` requires the `zod/v4` subpath export but the host environment may hoist zod@3.x.
 
-### ✨ 改进
+### ✨ Improvements
 
-- **L1→L2 延迟从 90s 降至 10s**：`l2DelayAfterL1Seconds` 默认值 90→10，冷启动用户不再需要等待 ~90s 才能看到 L2 场景提取结果，体感更及时。
+- **L1→L2 delay reduced from 90s to 10s**: `l2DelayAfterL1Seconds` default changed from 90 to 10, so cold-start users no longer need to wait ~90s to see L2 scene extraction results.
 
-### 📖 文档
+### 📖 Documentation
 
-- README 新增 Docker Quick Start 章节，说明模型 URL/Name 环境变量配置方式。
+- Added a Docker Quick Start section to the README, explaining how to configure model URL/Name environment variables.
 
 ---
 
 ## [0.3.4] - 2026-05-12
 
-### 🐛 修复
+### 🐛 Fixes
 
-- **兼容 OpenClaw v2026.4.7 以下版本 L1 抽取空输出**：旧宿主不支持 `systemPromptOverride`，通过 `extraSystemPrompt` 回退注入系统提示，确保 LLM 按数据提取助手身份工作。
-- **TCVDB hybrid 召回冗余双重 HTTP 调用**：`auto-recall` 对 TCVDB 发两次相同的 `hybridSearch` 请求（且 keyword 路径将 FTS5 OR 表达式错误传入 BM25 编码器）。新增 `nativeHybridSearch` 短路，TCVDB 单次调用即可完成 dense + sparse + RRF，recall 耗时减半（~50-120ms）。
-- **L2 parser 对齐 Go 后端**：增加 mermaid fallback，修复 `first{...last}` JSON 提取逻辑。
+- **Compatible with empty L1 extraction output on OpenClaw versions earlier than v2026.4.7**: older hosts do not support `systemPromptOverride`, so the system prompt now falls back to `extraSystemPrompt` to ensure the LLM works as a data extraction assistant.
+- **Redundant double HTTP calls in TCVDB hybrid recall**: `auto-recall` sent two identical `hybridSearch` requests to TCVDB, and the keyword path incorrectly passed the FTS5 OR expression into the BM25 encoder. Added a `nativeHybridSearch` short-circuit so TCVDB completes dense + sparse + RRF in a single call, cutting recall latency in half (~50-120ms).
+- **L2 parser aligned with the Go backend**: added Mermaid fallback and fixed the `first{...last}` JSON extraction logic.
 
-### ✨ 改进
+### ✨ Improvements
 
-- **VDB HTTP 请求级计时**：`tcvdb-client` 每次请求打一条 info 计时日志（`/document/hybridSearch 85ms`），retry/失败细节保持 debug 级别。
-- **启动路径误导性日志降级为 DEBUG**：store manifest 不一致、sqlite schema migration、profile-sync MD5 mismatch 等正常场景不再打 warn/info，避免 AI 误判。
-- **L1 提取调试日志**：新增 `[l1-debug]` 系列（RESOLVE / INVOKE / RESULT / EMPTY_DUMP / ENTRY / NO_JSON），方便定位 LLM 调用链问题。
+- **VDB HTTP request-level timing**: `tcvdb-client` now logs one info timing line per request (`/document/hybridSearch 85ms`), while retry/failure details remain at debug level.
+- **Misleading startup-path logs downgraded to DEBUG**: normal scenarios such as store manifest mismatch, sqlite schema migration, and profile-sync MD5 mismatch no longer emit warn/info logs, avoiding AI misdiagnosis.
+- **L1 extraction debug logs**: added the `[l1-debug]` series (RESOLVE / INVOKE / RESULT / EMPTY_DUMP / ENTRY / NO_JSON) to help locate LLM call-chain issues.
 
-### 🔧 兼容性适配
+### 🔧 Compatibility adaptations
 
-- **OC 2026.4.23 Zod schema 兼容 patch 脚本**（`scripts/bugfix-20260423/`）：一键修复 `allowConversationAccess` 被 `.strict()` 拒绝的问题，含轻量版脚本、全自动脚本、手动 SOP 文档。
-- Offload 日志去掉 `Backend` 前缀，默认超时为 120s。
+- **OC 2026.4.23 Zod schema compatibility patch script** (`scripts/bugfix-20260423/`): one-command fix for `allowConversationAccess` being rejected by `.strict()`, including a lightweight script, fully automatic script, and manual SOP documentation.
+- Removed the `Backend` prefix from Offload logs, and set the default timeout to 120s.
 
-### 📦 新功能
+### 📦 New features
 
-- **Offload Local Mode**：支持本地模式运行 offload（不依赖远端后端）。
-- **Docker 一体化镜像**（`Dockerfile.hermes`）：单容器捆绑 Hermes Agent + memory_tencentdb 插件 + TDAI Memory Gateway，统一 `MODEL_*` 环境变量驱动。
+- **Offload Local Mode**: supports running offload in local mode without depending on a remote backend.
+- **Integrated Docker image** (`Dockerfile.hermes`): single container bundling Hermes Agent + memory_tencentdb plugin + TDAI Memory Gateway, driven by unified `MODEL_*` environment variables.
 
-### ✅ 测试
+### ✅ Tests
 
-- 修复 `fault-injection` FI-05 mock config 缺 `embedding` 字段
-- 修复 `cli.test` dependencies 断言适配新增依赖
-- 跳过 `patch-effectiveness` 已删除的 `install-plugin.sh` 测试
+- Fixed `fault-injection` FI-05 mock config missing the `embedding` field
+- Fixed `cli.test` dependency assertions for the newly added dependency
+- Skipped the `patch-effectiveness` test for deleted `install-plugin.sh`
 
 ---
 
 ## [0.3.3] - 2026-05-08
 
-### 🐛 修复
+### 🐛 Fixes
 
-- **加固 hook-policy 版本决策逻辑**：仅当宿主版本为严格 `x.y.z` 语义化版本、且 `>= 2026.4.24` 时才自动写入 `hooks.allowConversationAccess`；无法解析（如 `unknown`、beta、snapshot 等非标准版本）时一律跳过，避免对旧版本或非预期版本误写配置导致启动失败。
-- hook-policy 关键路径补充 debug 日志（原始版本串、解析后版本、最小要求版本、是否 patch 的决策），方便线上排查。
+- **Hardened hook-policy version decision logic**: automatically writes `hooks.allowConversationAccess` only when the host version is a strict `x.y.z` semantic version and is `>= 2026.4.24`; unparseable versions (such as `unknown`, beta, snapshot, or other non-standard versions) are always skipped to avoid writing invalid configuration for old or unexpected versions and causing startup failure.
+- Added debug logs for key hook-policy paths (raw version string, parsed version, minimum required version, and patch decision) to simplify production troubleshooting.
 
-### ✅ 测试
+### ✅ Tests
 
-- 新增 `src/utils/ensure-hook-policy.test.ts`，覆盖标准版本、预发布、`unknown`、边界值等决策 case。
+- Added `src/utils/ensure-hook-policy.test.ts`, covering standard versions, prereleases, `unknown`, boundary values, and related decision cases.
 
 ## [0.3.2] - 2026-05-08
 
-### 🐛 修复
+### 🐛 Fixes
 
-- 兼容 OpenClaw v2026.4.23 前的版本，防止写入的 hook 配置导致无法启动
-- 修改 allowConversationAccess 到 2026.4.24+ 添加。
+- Compatible with OpenClaw versions before v2026.4.23; prevents written hook configuration from causing startup failure
+- Changed `allowConversationAccess` so it is added only for 2026.4.24+.
 
 ## [0.3.1-beta.1] - 2026-05-07
 
-### 🐛 修复
+### 🐛 Fixes
 
-- **兼容 OpenClaw v2026.4.23+ hook 权限策略**：该版本引入 `allowConversationAccess` 安全门控（[openclaw#70786](https://github.com/openclaw/openclaw/pull/70786)），导致非 bundled 插件的 `agent_end` hook 被静默拦截，整个 capture pipeline 失效。新增 `ensurePluginHookPolicy()` 自动检测并补全配置，优先通过 SDK 触发 gateway 自动重启，fallback 手动写入配置文件。
-- **兼容 OpenClaw 2026.5.3+ 安装校验**：新增 tsdown 构建配置生成 `dist/index.mjs`，满足新版安装时对编译产物的强制校验（不再允许纯 TypeScript 入口）。
-- **声明 `activation.onStartup`**：确保 gateway 在启动时加载本插件。
-- **声明 `contracts.tools`**：注册 `tdai_memory_search`、`tdai_conversation_search` 工具名，满足 tool registration contract 要求。
+- **Compatible with OpenClaw v2026.4.23+ hook permission policy**: this version introduced the `allowConversationAccess` security gate ([openclaw#70786](https://github.com/openclaw/openclaw/pull/70786)), causing the `agent_end` hook for non-bundled plugins to be silently blocked and breaking the entire capture pipeline. Added `ensurePluginHookPolicy()` to detect and complete configuration automatically, preferably triggering gateway auto-restart through the SDK and falling back to manually writing the config file.
+- **Compatible with OpenClaw 2026.5.3+ installation validation**: added tsdown build configuration to generate `dist/index.mjs`, satisfying the newer installation requirement for compiled artifacts (pure TypeScript entrypoints are no longer accepted).
+- **Declared `activation.onStartup`**: ensures the gateway loads this plugin at startup.
+- **Declared `contracts.tools`**: registers the tool names `tdai_memory_search` and `tdai_conversation_search`, satisfying the tool registration contract.
 
 ---
 
 ## [0.3.0] - 2026-05-06
 
-### 🚀 新功能
+### 🚀 New features
 
-**运维管理工具（CTL）**
+**Operations management tool (CTL)**
 
-- 新增 `memory-tencentdb-ctl` 命令行管理工具，支持 standalone 与 hermes 两种运行模式
-- 新增 `install-memory-tencentdb` 一键安装脚本
-- CTL 新增 `config vdb-off` 命令，支持将 Gateway 存储从 VDB 回退到 SQLite
-- Gateway 安装脚本支持将环境变量写入 `~/.hermes/.env`（systemd 场景）
+- Added the `memory-tencentdb-ctl` command-line management tool, supporting both standalone and hermes modes
+- Added the `install-memory-tencentdb` one-click installation script
+- Added the `config vdb-off` command to CTL, allowing Gateway storage to fall back from VDB to SQLite
+- Gateway installation script supports writing environment variables to `~/.hermes/.env` (systemd scenarios)
 
-**Offload 增强**
+**Offload enhancements**
 
-- Offload 启动时自动应用 `after_tool_call` patch，patch 失败时自动禁用 offload
-- 新增 `setup-offload.sh` 一键启用/禁用 offload 脚本，支持 `--backend-api-key` 参数
-- L0 捕获过滤：排除 offload 注入的 MMD 上下文块，避免将压缩中间产物误存为记忆
+- Automatically applies the `after_tool_call` patch when Offload starts, and automatically disables offload if the patch fails
+- Added the `setup-offload.sh` one-click enable/disable script for offload, with `--backend-api-key` support
+- L0 capture filtering: excludes MMD context blocks injected by offload, avoiding accidental storage of intermediate compression artifacts as memories
 
-**Gateway 自愈与稳定性**
+**Gateway self-healing and stability**
 
-- Hermes 插件新增 watchdog + lazy probe 机制，Gateway 异常时自动恢复
-- Gateway YAML 配置解析支持任意深度嵌套
+- Added watchdog + lazy probe mechanism to the Hermes plugin, automatically recovering Gateway failures
+- Gateway YAML configuration parsing supports arbitrary nesting depth
 
-### ✨ 改进
+### ✨ Improvements
 
-- 数据目录与安装目录统一整合至 `~/.memory-tencentdb/`
-- 引入 `$HERMES_HOME` 环境变量约定，移除硬编码 `~/.hermes` 路径
-- CTL hermes 配置编辑改为缩进感知，保持原始文件格式
-- 运维脚本保留在 tarball 中但不再注册为 bin 命令（减少全局命令污染）
-- init/destroy 生命周期日志降级为 debug 级别
-- patch 脚本兼容 pnpm 安装环境，使用 Node.js 动态解析 openclaw 安装路径
+- Unified data and installation directories under `~/.memory-tencentdb/`
+- Introduced the `$HERMES_HOME` environment variable convention and removed the hard-coded `~/.hermes` path
+- CTL hermes configuration editing is now indentation-aware and preserves original file formatting
+- Operations scripts remain in the tarball but are no longer registered as bin commands, reducing global command pollution
+- init/destroy lifecycle logs downgraded to debug level
+- Patch script is compatible with pnpm installations and uses Node.js to dynamically resolve the openclaw installation path
 
-### 🐛 修复
+### 🐛 Fixes
 
-**Core 稳定性**
+**Core stability**
 
-- 修复 `ensureSchedulerStarted` 并发调用下的竞态问题
-- 修复 `/session/end` 错误销毁全局 scheduler 的问题（改为按 session_key 作用域）
-- 修复关闭 store 时未等待后台 fire-and-forget 任务完成的问题
-- 修复 `disable_offload` 未正确删除 `slots.contextEngine` 配置的问题
+- Fixed race conditions when `ensureSchedulerStarted` is called concurrently
+- Fixed `/session/end` incorrectly destroying the global scheduler (now scoped by `session_key`)
+- Fixed store shutdown not waiting for background fire-and-forget tasks to finish
+- Fixed `disable_offload` not correctly removing the `slots.contextEngine` configuration
 
 **Offload**
 
-- 修复 slot 占用检测逻辑：仅在 `ok=false`（slot 被占用）时拒绝，API 异常不再误判为冲突
-- 修复 `registerContextEngine` 抛异常时未禁用 offload 的问题
-- 修复 slot 被占用时未完全禁用所有 offload 功能的问题
+- Fixed slot occupancy detection: reject only when `ok=false` (slot occupied), and no longer misjudge API exceptions as conflicts
+- Fixed offload not being disabled when `registerContextEngine` throws
+- Fixed all offload features not being fully disabled when the slot is occupied
 
-**L3 压缩**
+**L3 compression**
 
-- 修复 aggressive/emergency 压缩在用户消息位于队首时卡死的问题
-- 修复消息被大量 offload 后压缩停滞的问题
+- Fixed aggressive/emergency compression getting stuck when the user message is at the head of the queue
+- Fixed compression stalling after many messages are offloaded
 
-**迁移工具**
+**Migration tools**
 
-- 修复源数据目录或 SQLite 不存在时迁移脚本崩溃的问题（改为优雅跳过）
-- 修复源数据为空时 config/manifest 未写入的问题
+- Fixed migration script crash when the source data directory or SQLite database does not exist (now skips gracefully)
+- Fixed config/manifest not being written when source data is empty
 
-**脚本与运维**
+**Scripts and operations**
 
-- 修复 `set -e` 环境下 `((VAR++))` 在 VAR=0 时导致脚本退出的问题
-- 修复 patch 脚本误报 FAILED 计数的问题（跳过无 after_tool_call 上下文的候选项）
-- 修复 Hermes 退出时未终止 Gateway 子进程的问题
+- Fixed `((VAR++))` causing script exit under `set -e` when VAR=0
+- Fixed patch script false-reporting FAILED count (skips candidates without an after_tool_call context)
+- Fixed Gateway subprocess not being terminated when Hermes exits
 
-### ♻️ 重构
+### ♻️ Refactoring
 
-- 统一 patch 检测逻辑：始终委托给 patch 脚本并通过退出码判定结果
+- Unified patch detection logic: always delegates to the patch script and determines the result by exit code
 
 ---
 
 ## [0.3.0-beta.1] - 2026-04-23
 
-### 🚀 新功能
+### 🚀 New features
 
-**短期记忆压缩（Context Offload）**
+**Short-term memory compression (Context Offload)**
 
-- 新增 Offload 模块，支持长对话场景下的上下文压缩与记忆卸载
+- Added the Offload module, supporting context compression and memory offloading in long-conversation scenarios
 
-**架构重构：Core + Gateway 多框架支持**
+**Architecture refactor: Core + Gateway multi-framework support**
 
-- 重构为 `TdaiCore` 宿主无关的核心层 + 适配器模式，解耦 OpenClaw 框架依赖
-- 新增 `HostAdapter` / `LLMRunner` / `LLMRunnerFactory` 抽象接口，支持不同宿主的 LLM 调用
-- 新增 Hermes Gateway 适配器（`memory_tencentdb` Hermes Plugin），支持通过 Hermes 框架独立运行
-- `TdaiCore` 提供统一的 `handleBeforeRecall()` / `handleTurnCommitted()` / `searchMemories()` 等 API
-- Gateway 零配置自动发现：Hermes 插件自动检测配置和数据目录
-- 数据目录所有权从插件移至 Gateway 层管理
+- Refactored to a host-neutral `TdaiCore` core layer + adapter pattern, decoupling OpenClaw framework dependencies
+- Added `HostAdapter` / `LLMRunner` / `LLMRunnerFactory` abstractions, supporting LLM calls from different hosts
+- Added Hermes Gateway adapter (`memory_tencentdb` Hermes Plugin), supporting standalone operation through the Hermes framework
+- `TdaiCore` provides unified APIs such as `handleBeforeRecall()` / `handleTurnCommitted()` / `searchMemories()`
+- Gateway zero-config auto-discovery: the Hermes plugin automatically detects configuration and data directories
+- Data directory ownership moved from the plugin to the Gateway layer
 
-**Recall 注入优化（Cache 友好）**
+**Recall injection optimization (cache-friendly)**
 
-- L1 召回记忆从 `appendSystemContext` 移到 `prependContext`（用户消息前缀），避免每轮系统提示词变化导致 prompt cache bust
-- Persona / Scene Navigation / Tools Guide 保持在 `appendSystemContext`（稳定内容，连续多轮 cache 命中）
-- 注册 `before_message_write` 钩子，在 user message 持久化到 JSONL 前 strip `<relevant-memories>` 标签，防止历史消息中累积旧的召回内容
+- Moved L1 recalled memories from `appendSystemContext` to `prependContext` (user-message prefix), avoiding prompt cache busts caused by changing the system prompt every turn
+- Persona / Scene Navigation / Tools Guide remain in `appendSystemContext` (stable content, enabling cache hits across consecutive turns)
+- Registered the `before_message_write` hook to strip `<relevant-memories>` tags before user messages are persisted to JSONL, preventing old recalled content from accumulating in historical messages
 
-**分场景 Embedding 超时**
+**Scenario-specific embedding timeouts**
 
-- 新增 `embedding.recallTimeoutMs`（recall 路径）和 `embedding.captureTimeoutMs`（capture 路径）配置
-- recall 超时时 hybrid 策略自动降级为纯关键词搜索；capture 超时时 L1 dedup 降级为 FTS
-- 向前兼容：不配置时 fallback 到全局 `embedding.timeoutMs`
+- Added `embedding.recallTimeoutMs` (recall path) and `embedding.captureTimeoutMs` (capture path) configuration
+- On recall timeout, the hybrid strategy automatically degrades to pure keyword search; on capture timeout, L1 dedup degrades to FTS
+- Backward-compatible: falls back to global `embedding.timeoutMs` when not configured
 
-### ✨ 改进
+### ✨ Improvements
 
-- CleanContextRunner 通过 `systemPromptOverride` 替换 OpenClaw 默认系统提示词，每次 L1/L2/L3 调用节省 ~4500 input tokens
-- L2（场景提取）和 L3（画像生成）prompt 拆分为 `systemPrompt` + `userPrompt`，角色划分更清晰
-- Pipeline 默认参数调整：`l1IdleTimeoutSeconds` 60→600s，`l2MinIntervalSeconds` 300→900s，`l2MaxIntervalSeconds` 1800→3600s
+- CleanContextRunner uses `systemPromptOverride` to replace OpenClaw's default system prompt, saving ~4500 input tokens per L1/L2/L3 call
+- Split L2 (scene extraction) and L3 (persona generation) prompts into `systemPrompt` + `userPrompt`, making role separation clearer
+- Adjusted pipeline defaults: `l1IdleTimeoutSeconds` 60→600s, `l2MinIntervalSeconds` 300→900s, `l2MaxIntervalSeconds` 1800→3600s
 
-### 🐛 修复
+### 🐛 Fixes
 
-- 修复 `pullProfilesToLocal` 并发竞争导致 `ENOTEMPTY` 错误（乐观无锁修法：rename 竞争失败时静默使用对方结果）
-- 修复 `originalUserMessageCount` 数据链路断裂导致 L0 recorder 无法定位被污染的 user message
-- 修复 `RecallResult` 类型定义缺少 `prependContext` 字段（`types.ts` 与 `auto-recall.ts` 不一致）
+- Fixed `pullProfilesToLocal` concurrent contention causing `ENOTEMPTY` errors (optimistic lock-free fix: silently use the other result when rename contention fails)
+- Fixed broken `originalUserMessageCount` data chain that prevented the L0 recorder from locating polluted user messages
+- Fixed missing `prependContext` field in the `RecallResult` type definition (`types.ts` and `auto-recall.ts` were inconsistent)
 
 ---
 
 ## [0.2.2] - 2026-04-17
 
-### 🐛 修复
+### 🐛 Fixes
 
-- 修复因未声明 `undici` 依赖导致 TCVDB 客户端加载失败的问题（开发环境之前依赖 monorepo 根 `node_modules` 的传递解析）
-- 将插件注册阶段的大量 INFO 日志降级为 DEBUG，避免 CLI 模式下输出过多无关日志
+- Fixed TCVDB client load failure caused by not declaring the `undici` dependency (development previously relied on transitive resolution from the monorepo root `node_modules`)
+- Downgraded large volumes of INFO logs during plugin registration to DEBUG, avoiding excessive unrelated output in CLI mode
 
 ## [0.2.1] - 2026-04-16 (deprecated)
 
-> NOTE: 此版本由于存在 undici 依赖导致插件启动失败的问题，已废弃
-> 相关问题在 0.2.2 及以后版本中已修复
+> NOTE: This version has been deprecated because an issue with the undici dependency could cause plugin startup failure.
+> The issue has been fixed in 0.2.2 and later versions.
 
-### 🚀 新功能
+### 🚀 New features
 
-- TCVDB 新增 HTTPS 连接支持，可通过插件配置 `caPemPath` 或迁移脚本参数 `--tcvdb-ca-pem` 指定自定义 CA 证书 PEM 文件
-- `read-local-memory` 脚本新增 L2 单文件查询，并将 L0 / L1 查询切换为直接从 `vectors.db` 读取，支持 SQL 层过滤、排序与分页
+- Added HTTPS connection support for TCVDB; custom CA certificate PEM files can be specified through plugin config `caPemPath` or migration script parameter `--tcvdb-ca-pem`
+- Added single-file L2 query support to the `read-local-memory` script, and switched L0 / L1 queries to read directly from `vectors.db`, supporting SQL-level filtering, sorting, and pagination
 
-### ✨ 改进
+### ✨ Improvements
 
-- TCVDB 的 L0 / L1 向量索引默认调整为 `DISK_FLAT`，并在不支持该索引类型的实例上自动回退到 `HNSW`
-- 默认服务端 embedding 模型调整为 `bge-large-zh`
-- TCVDB 所有读接口统一启用 `readConsistency: "strongConsistency"`，消除 read-after-write 不一致
-- 健康检测脚本 VDB 连接支持 HTTPS 自签证书
+- TCVDB L0 / L1 vector indexes now default to `DISK_FLAT`, and automatically fall back to `HNSW` on instances that do not support that index type
+- Default server-side embedding model changed to `bge-large-zh`
+- All TCVDB read APIs now use `readConsistency: "strongConsistency"`, eliminating read-after-write inconsistency
+- Health-check script VDB connections support HTTPS self-signed certificates
 
-### 🐛 修复
+### 🐛 Fixes
 
-- 修复 L3 persona sync 因未拉取远端 baseline 导致版本冲突跳过写入的问题
-- 修复 `memories_since_last_persona` 被 L0 和 L1 双重计数导致 persona 触发阈值膨胀的问题
-- 移除 `CheckpointManager` 中已被 `captureAtomically()` 替代的废弃方法
+- Fixed L3 persona sync skipping writes due to version conflicts when the remote baseline had not been pulled
+- Fixed `memories_since_last_persona` being counted twice by L0 and L1, inflating the persona trigger threshold
+- Removed deprecated methods in `CheckpointManager` that had been replaced by `captureAtomically()`
 
 ---
 
 ## [0.2.0] - 2026-04-15
 
-### 🚀 新功能
+### 🚀 New features
 
-**腾讯云向量数据库（TCVDB）存储后端**
+**Tencent Cloud Vector Database (TCVDB) storage backend**
 
-- 新增腾讯云向量数据库存储后端，支持向量 + BM25 混合召回
-- 支持 SQLite 与 TCVDB 之间的索引结构同步
-- L2 场景 / L3 画像支持在本地缓存与向量数据库之间双向同步
-- 插件配置（manifest）暴露 `storeBackend`、`tcvdb`、`bm25`、`embedding.timeoutMs` 等配置项
+- Added Tencent Cloud Vector Database storage backend with hybrid vector + BM25 recall
+- Supports index structure synchronization between SQLite and TCVDB
+- L2 scenes / L3 personas support two-way synchronization between local cache and the vector database
+- Plugin configuration (manifest) exposes configuration items such as `storeBackend`, `tcvdb`, `bm25`, and `embedding.timeoutMs`
 
-**本地 BM25 关键字检索**
+**Local BM25 keyword retrieval**
 
-- 使用本地 tcvdb-text 编码器替代原有的 BM25 HTTP sidecar 服务，消除外部依赖
+- Replaced the previous BM25 HTTP sidecar service with the local tcvdb-text encoder, eliminating the external dependency
 
-**Seed 数据导入工具**
+**Seed data import tool**
 
-- 新增 CLI `seed` 命令，支持从外部数据批量导入记忆
-- 提取共享的 pipeline-factory，供 seed 和正常运行时复用
-- 支持 ISO 8601 时间戳格式（移除 JSONL 支持）
+- Added CLI `seed` command for bulk memory import from external data
+- Extracted shared pipeline-factory for reuse by seed and normal runtime
+- Supports ISO 8601 timestamp format (JSONL support removed)
 
-**数据迁移与运维工具**
+**Data migration and operations tools**
 
-- 新增 SQLite → 腾讯云向量数据库迁移脚本，支持 `--help` / `-h` 展示完整参数说明和使用示例
-- 新增 VDB 数据导出脚本（含预编译 JS 和 CLI 启动器）
-- 新增本地 Memory 数据查询脚本
-- 注册全部 CLI bin 入口：`migrate-sqlite-to-tcvdb`、`export-tencent-vdb`、`read-local-memory`
+- Added SQLite → Tencent Cloud Vector Database migration script, supporting `--help` / `-h` to display complete parameter descriptions and usage examples
+- Added VDB data export script (including precompiled JS and CLI launcher)
+- Added local Memory data query script
+- Registered all CLI bin entrypoints: `migrate-sqlite-to-tcvdb`, `export-tencent-vdb`, `read-local-memory`
 
-**记忆搜索工具调用限制**
+**Memory search tool call limit**
 
-- `tdai_memory_search` + `tdai_conversation_search` 增加每轮合计最多 3 次的调用次数限制，通过 tool description 和召回引导提示词约束模型行为，防止陷入无效重复搜索
+- Added a combined per-turn maximum of 3 calls for `tdai_memory_search` + `tdai_conversation_search`, using tool descriptions and recall guidance prompts to constrain model behavior and prevent ineffective repeated searches
 
-### 🐛 修复
+### 🐛 Fixes
 
-- 修复 L2 场景合并（MERGE）无法删除旧文件的问题：OpenClaw 4.1+ 的 write 工具拒绝空白内容，改用 `[DELETED]` 标记实现软删除，SceneExtractor cleanup 阶段同步识别并清理
-- 修复 L2 抽取产生孤立 BATCH/ARCHIVE 文件的问题，统一 maxScenes 上限为 15
-- 修复 L3 启动时重复拉取 profile 的问题
-- 过滤 skill wrapper 噪声标记（`¥¥[...]¥¥`）
-- 处理 `createCollection` 并发竞态（错误码 15202）
+- Fixed inability to delete old files during L2 scene merge (MERGE): OpenClaw 4.1+ write tool rejects blank content, so `[DELETED]` marker is used for soft deletion, and the SceneExtractor cleanup phase recognizes and cleans it up
+- Fixed orphan BATCH/ARCHIVE files generated by L2 extraction, and unified `maxScenes` limit to 15
+- Fixed duplicate profile pulls during L3 startup
+- Filtered skill wrapper noise markers (`¥¥[...]¥¥`)
+- Handled `createCollection` concurrency race (error code 15202)
 
-### ♻️ 重构
+### ♻️ Refactoring
 
-- Pipeline checkpoint 游标语义从 timestamp 改为 update_at
-- Runner 改用 `api.runtime.agent.runEmbeddedPiAgent`，避免跨环境导入失败
-- 统一脚本构建流程：新增 `build:scripts` 一键编译命令，`prepack` 钩子确保 `npm pack` 前自动编译全部脚本产物
+- Pipeline checkpoint cursor semantics changed from timestamp to update_at
+- Runner now uses `api.runtime.agent.runEmbeddedPiAgent`, avoiding cross-environment import failures
+- Unified script build flow: added the `build:scripts` one-command compilation, and the `prepack` hook now automatically compiles all script artifacts before `npm pack`
 
-### 📚 文档
+### 📚 Documentation
 
-- 新增 AI Agent 长期记忆插件设计与实现技术文档
-- 新增项目指南、研发系统分层架构文档
-- 新增 VDB 存储设计文档及迁移指南
+- Added technical documentation for the design and implementation of the AI Agent long-term memory plugin
+- Added project guide and R&D system layered-architecture documentation
+- Added VDB storage design documentation and migration guide
 
 ---
 
 <details>
-<summary>预发布版本</summary>
+<summary>Prerelease versions</summary>
 
 ## [0.2.0-beta.1] - 2026-04-14
 
-*此版本的内容已合并至 [0.2.0] 正式版。*
+*The contents of this version have been merged into the official [0.2.0] release.*
 
 </details>
 
@@ -295,52 +295,52 @@
 
 ## [0.1.3] - 2026-04-09
 
-### 🚀 功能
+### 🚀 Features
 
-- *(memory-tdai)* 用 reporter 抽象替换 emitMetric
-- *(L3)* L3 使用读写工具，防止模型输出 CoT
-- *(memory)* 添加 embedding 截断、召回超时，以及从 L0 捕获中剔除代码块
-- *(config)* Embedding 超时支持配置
-- *(report)* 在 schema 中暴露 report 配置项，默认值改为 false
+- *(memory-tdai)* Replace emitMetric with reporter abstraction
+- *(L3)* L3 uses read/write tools to prevent model output from including CoT
+- *(memory)* Add embedding truncation, recall timeout, and code-block removal from L0 capture
+- *(config)* Embedding timeout supports configuration
+- *(report)* Expose report configuration in schema, and change the default value to false
 
-### 🐛 修复
+### 🐛 Fixes
 
-- *(capture)* 跳过心跳/定时任务/自动化/调度类消息
-- *(recall)* 召回完成时清除超时定时器，避免误报超时警告
+- *(capture)* Skip heartbeat/scheduled task/automation/scheduler messages
+- *(recall)* Clear timeout timer when recall completes, avoiding false timeout warnings
 
 ### 💼 Other
 
-- 重命名包名为 memory-tencentdb
-- *(deps)* 将 node-llama-cpp 改为可选依赖
+- Rename package to memory-tencentdb
+- *(deps)* Change node-llama-cpp to an optional dependency
 
-### ⚡ 性能
+### ⚡ Performance
 
-- *(auto-capture)* 将 L0 向量嵌入移至后台以降低延迟
+- *(auto-capture)* Move L0 vector embedding into the background to reduce latency
 
-### 📚 文档
+### 📚 Documentation
 
-- 添加 allowPromptInjection 配置警告说明
+- Add warning documentation for allowPromptInjection configuration
 
 ## [0.1.2] — 2026-03-26
 
-### 更新内容
+### Changes
 
-1. 优化对话捕获与记忆抽取过滤机制
+1. Improved conversation capture and memory extraction filtering mechanisms
 
 ## [0.1.1] — 2026-03-25
 
-### 更新内容
+### Changes
 
-1. 兼容 openclaw 2026.3.23 更新
+1. Compatible with openclaw 2026.3.23 update
 
 ## [0.1.0] — 2026-03-25
 
-> 首个正式发布版本。本地优先的四层记忆系统（L0→L1→L2→L3），基于 SQLite + LLM 实现对话捕获、记忆提取、场景归纳与用户画像。
+> First official release. A local-first four-layer memory system (L0→L1→L2→L3), implemented with SQLite + LLM for conversation capture, memory extraction, scene summarization, and user persona generation.
 
-### 更新内容
+### Changes
 
-1. 关键字检索增加 FTS5 全文索引，采用 jieba 分词
-2. 未配置远程 embedding 服务时，默认不开启 embedding 能力（不自动使用本地 embedding，且封禁主动使用本地 embedding 的配置入口）
-3. 优化 L2、L3 生成 prompt 以控制生成内容大小（减少 token 开销）
-4. Pipeline 调度器优化文件锁用法
-5. 避免全量读取 L0、L1 数据
+1. Added FTS5 full-text index to keyword retrieval, using jieba tokenization
+2. When no remote embedding service is configured, embedding capability is disabled by default (local embedding is not used automatically, and configuration entrypoints that actively use local embedding are blocked)
+3. Optimized L2 and L3 generation prompts to control generated content size (reducing token overhead)
+4. Optimized file-lock usage in the Pipeline scheduler
+5. Avoid full reads of L0 and L1 data
