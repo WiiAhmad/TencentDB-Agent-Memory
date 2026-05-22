@@ -201,11 +201,11 @@ const PROMPT_INJECTION_PATTERNS: RegExp[] = [
   // ── Tool/command invocation tricks ──
   /\b(run|execute|call|invoke)\b.{0,40}\b(tool|command|function|shell)\b/i,
 
-  // ── Chinese variants ──
-  /忽略(?:所有|之前|以上|先前)?(?:的)?(?:指令|规则|指示|说明)/,
-  /无视(?:所有|之前|以上)?(?:的)?(?:指令|规则|限制)/,
-  /(?:显示|输出|告诉我|给我看)(?:你的)?(?:系统|初始|隐藏)?(?:提示词|指令|规则|prompt)/,
-  /你(?:现在|从现在开始)是/,            // "你现在是 DAN"
+  // ── Chinese-language variants ──
+  /\u5ffd\u7565(?:\u6240\u6709|\u4e4b\u524d|\u4ee5\u4e0a|\u5148\u524d)?(?:\u7684)?(?:\u6307\u4ee4|\u89c4\u5219|\u6307\u793a|\u8bf4\u660e)/,
+  /\u65e0\u89c6(?:\u6240\u6709|\u4e4b\u524d|\u4ee5\u4e0a)?(?:\u7684)?(?:\u6307\u4ee4|\u89c4\u5219|\u9650\u5236)/,
+  /(?:\u663e\u793a|\u8f93\u51fa|\u544a\u8bc9\u6211|\u7ed9\u6211\u770b)(?:\u4f60\u7684)?(?:\u7cfb\u7edf|\u521d\u59cb|\u9690\u85cf)?(?:\u63d0\u793a\u8bcd|\u6307\u4ee4|\u89c4\u5219|prompt)/,
+  /\u4f60(?:\u73b0\u5728|\u4ece\u73b0\u5728\u5f00\u59cb)\u662f/, // "you are now DAN" in Chinese
 ];
 
 /**
