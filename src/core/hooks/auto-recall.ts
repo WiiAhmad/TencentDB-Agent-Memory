@@ -28,18 +28,18 @@ const TAG = "[memory-tdai] [recall]";
  * main agent knows how to actively retrieve deeper information.
  */
 const MEMORY_TOOLS_GUIDE = `<memory-tools-guide>
-## 记忆工具调用指南
+## Memory Tool Usage Guide
 
-当上方注入的记忆片段不足以回答用户问题时，可主动调用以下工具获取更多信息：
+If the injected memory snippets above are not enough to answer the user's question, you may proactively call the following tools to retrieve more information:
 
-- **tdai_memory_search**：搜索结构化记忆（L1），适用于回忆用户偏好、历史事件节点、规则等关键信息。
-- **tdai_conversation_search**：搜索原始对话（L0），适用于查找具体消息原文、时间线、上下文细节；也可用于补充或校验 memory_search 的结果。
-- **read_file**（Scene Navigation 中的路径）：当已定位到相关情境，且需要该场景的完整画像、事件经过或阶段结论时使用。
+- **tdai_memory_search**: Search structured memories (L1). Best for recalling key information such as user preferences, historical event nodes, and rules.
+- **tdai_conversation_search**: Search raw conversations (L0). Best for locating exact message wording, timelines, and contextual details. It can also supplement or verify the results of memory_search.
+- **read_file** (paths from Scene Navigation): Use this after locating the relevant scene when you need the full scene-level persona, event flow, or stage conclusions.
 
-### ⚠️ 调用次数限制
-每轮对话中，tdai_memory_search 和 tdai_conversation_search **合计最多调用 3 次**。
-- 首次搜索无结果时，可换关键词或换工具重试，但总调用次数不要超过 3 次。
-- 若 3 次搜索后仍无结果，说明该信息不在记忆中，请直接根据已有信息回复用户，不要继续搜索。
+### ⚠️ Call Limit
+Within a single conversation turn, **tdai_memory_search and tdai_conversation_search may be called at most 3 times in total**.
+- If the first search returns no result, you may retry with different keywords or a different tool, but the total number of calls must still stay within 3.
+- If you still get no result after 3 searches, that means the information is not present in memory. Respond directly using the information you already have, and do not keep searching.
 </memory-tools-guide>`
 
 interface Logger {
@@ -130,7 +130,7 @@ async function performAutoRecallInner(params: {
 
     // Extract structured RecalledMemory from formatted lines for metric reporting
     recalledL1Memories = memoryLines.map((line) => {
-      const match = line.match(/^-\s+\[([^\]]+)\]\s+(.+?)(?:\s*\(活动时间:.*\))?$/);
+      const match = line.match(/^-\s+\[([^\]]+)\]\s+(.+?)(?:\s*\(Activity time:.*\))?$/);
       if (match) {
         const tag = match[1];
         const content = match[2].trim();
@@ -206,7 +206,7 @@ async function performAutoRecallInner(params: {
   let prependContext: string | undefined;
   if (memoryLines.length > 0) {
     prependContext =
-      `<relevant-memories>\n以下是当前对话召回的相关记忆，不代表当前任务进程，仅作为参考：\n\n${memoryLines.join("\n")}\n</relevant-memories>`;
+      `<relevant-memories>\nBelow are the relevant memories recalled for the current conversation. They do not represent the current task progress and are provided only as reference:\n\n${memoryLines.join("\n")}\n</relevant-memories>`;
   }
 
   // Append memory tools usage guide to the stable part so the agent knows
@@ -282,9 +282,9 @@ async function searchMemoriesWithDetails(
   const result = await searchMemories(userText, pluginDataDir, cfg, logger, strategy, vectorStore, embeddingService);
 
   // Extract structured data from formatted memory lines.
-  // Format: "- [type|scene] content (活动时间: ...)" or "- [type] content"
+  // Format: "- [type|scene] content (Activity time: ...)" or "- [type] content"
   const memories: RecalledMemory[] = result.lines.map((line) => {
-    const match = line.match(/^-\s+\[([^\]]+)\]\s+(.+?)(?:\s*\(活动时间:.*\))?$/);
+    const match = line.match(/^-\s+\[([^\]]+)\]\s+(.+?)(?:\s*\(Activity time:.*\))?$/);
     if (match) {
       const tag = match[1];
       const content = match[2].trim();
@@ -654,25 +654,25 @@ async function searchHybrid(
  * Format a single memory record into a rich natural-language line for prompt injection.
  *
  * Time semantics:
- *   - timestamp (点时间): when the activity/event happened, e.g. "2025-03-01 mentioned something"
- *   - activity_start_time / activity_end_time (段时间): activity time range, e.g. "trip from 2025-05-01 to 2025-05-10"
+ *   - timestamp (point-in-time): when the activity/event happened, e.g. "2025-03-01 mentioned something"
+ *   - activity_start_time / activity_end_time (time range): activity time range, e.g. "trip from 2025-05-01 to 2025-05-10"
  *   - All three time fields may be empty/undefined — handled gracefully.
  *
  * Output examples:
- *   - [persona] 用户叫王小明，30岁，是一名软件工程师。
- *   - [episodic|旅行计划] 用户计划五月去日本旅行。(活动时间: 2025-05-01 ~ 2025-05-10)
- *   - [episodic] 用户今天加班到很晚。(活动时间: 2025-03-01)
- *   - [instruction] 用户要求回答时使用中文，保持简洁。
+ *   - [persona] The user's name is Wang Xiaoming, age 30, and they are a software engineer.
+ *   - [episodic|Travel Plans] The user plans to travel to Japan in May. (Activity time: 2025-05-01 ~ 2025-05-10)
+ *   - [episodic] The user worked overtime very late today. (Activity time: 2025-03-01)
+ *   - [instruction] The user wants answers in Chinese and prefers them concise.
  */
 interface FormatableMemory {
   type: string;
   content: string;
   scene_name?: string;
-  /** Activity time range start (段时间 start), may be empty */
+  /** Activity time range start, may be empty */
   activity_start_time?: string;
-  /** Activity time range end (段时间 end), may be empty */
+  /** Activity time range end, may be empty */
   activity_end_time?: string;
-  /** Activity point-in-time (点时间: when it happened), may be empty */
+  /** Activity point-in-time, may be empty */
   timestamp?: string;
 }
 
@@ -689,17 +689,17 @@ function formatMemoryLine(m: FormatableMemory): string {
   const point = formatTimestamp(m.timestamp);
 
   if (start && end) {
-    // 段时间: both start and end
-    line += ` (活动时间: ${start} ~ ${end})`;
+    // Time range: both start and end
+    line += ` (Activity time: ${start} ~ ${end})`;
   } else if (start) {
-    // 段时间: only start
-    line += ` (活动时间: ${start}起)`;
+    // Time range: only start
+    line += ` (Activity time: from ${start})`;
   } else if (end) {
-    // 段时间: only end
-    line += ` (活动时间: 至${end})`;
+    // Time range: only end
+    line += ` (Activity time: until ${end})`;
   } else if (point) {
-    // 点时间: single timestamp
-    line += ` (活动时间: ${point})`;
+    // Point-in-time: single timestamp
+    line += ` (Activity time: ${point})`;
   }
   // If all three are empty → no time info appended (graceful)
 

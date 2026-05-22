@@ -145,7 +145,7 @@ function requireNodeSqlite(): typeof import("node:sqlite") {
 // FTS5 helpers (adapted from openclaw core hybrid.ts)
 // ============================
 
-// ── Chinese word segmentation (jieba) ──
+// -- CJK word segmentation (jieba) --
 // Lazy-loaded singleton: initialised on first call to `buildFtsQuery`.
 // If @node-rs/jieba is unavailable, falls back to Unicode-regex splitting.
 
@@ -170,21 +170,21 @@ function getJieba(): JiebaInstance | null {
 }
 
 /**
- * Common Chinese stop-words that add noise to FTS5 queries.
+ * Common CJK stop-words that add noise to FTS5 queries.
  * Kept small on purpose — only high-frequency function words.
  */
 const ZH_STOP_WORDS = new Set([
-  "的", "了", "在", "是", "我", "有", "和", "就", "不", "人", "都", "一",
-  "一个", "上", "也", "很", "到", "说", "要", "去", "你", "会", "着",
-  "没有", "看", "好", "自己", "这", "他", "她", "它", "们", "那",
-  "吗", "吧", "呢", "啊", "呀", "哦", "嗯",
+  "\u7684", "\u4e86", "\u5728", "\u662f", "\u6211", "\u6709", "\u548c", "\u5c31", "\u4e0d", "\u4eba", "\u90fd", "\u4e00",
+  "\u4e00\u4e2a", "\u4e0a", "\u4e5f", "\u5f88", "\u5230", "\u8bf4", "\u8981", "\u53bb", "\u4f60", "\u4f1a", "\u7740",
+  "\u6ca1\u6709", "\u770b", "\u597d", "\u81ea\u5df1", "\u8fd9", "\u4ed6", "\u5979", "\u5b83", "\u4eec", "\u90a3",
+  "\u5417", "\u5427", "\u5462", "\u554a", "\u5440", "\u54e6", "\u55ef",
 ]);
 
 /**
  * Build an FTS5 MATCH query from raw text.
  *
  * When `@node-rs/jieba` is available, uses jieba's search-engine mode
- * (`cutForSearch`) for accurate Chinese word segmentation, producing
+ * (`cutForSearch`) for accurate CJK word segmentation, producing
  * much better recall than the previous regex-only approach.
  *
  * Falls back to Unicode-regex splitting (`/[\p{L}\p{N}_]+/gu`) if
@@ -196,18 +196,18 @@ const ZH_STOP_WORDS = new Set([
  * significantly improved — especially for longer queries and when running
  * in FTS-only fallback mode (no embedding available).
  *
- * Example (with jieba):
- *   "用户喜欢编程和TypeScript" → '"用户" OR "喜欢" OR "编程" OR "TypeScript"'
+ * Example (with jieba, exact tokens depend on the dictionary):
+ *   "\u5317\u4eac\u70e4\u9e2d" -> quoted OR terms built from jieba search tokens
  * Example (fallback):
- *   "旅行计划 API" → '"旅行计划" OR "API"'
+ *   "travel plans API" -> '"travel" OR "plans" OR "API"'
  */
 export function buildFtsQuery(raw: string): string | null {
   const jieba = getJieba();
 
   let tokens: string[];
   if (jieba) {
-    // jieba cutForSearch: splits long words further for better recall
-    // e.g. "北京烤鸭" → ["北京", "烤鸭", "北京烤鸭"]
+    // jieba cutForSearch: splits long CJK terms further for better recall
+    // e.g. "\u5317\u4eac\u70e4\u9e2d" can emit both sub-word tokens and the full term
     tokens = jieba
       .cutForSearch(raw, true)
       .map((t) => t.trim())
@@ -215,7 +215,7 @@ export function buildFtsQuery(raw: string): string | null {
         if (!t) return false;
         // Remove pure whitespace / punctuation tokens
         if (!/[\p{L}\p{N}]/u.test(t)) return false;
-        // Remove common Chinese stop-words to reduce noise
+        // Remove common CJK stop-words to reduce noise
         if (ZH_STOP_WORDS.has(t)) return false;
         return true;
       });
@@ -238,23 +238,23 @@ export function buildFtsQuery(raw: string): string | null {
 /**
  * Tokenize text for FTS5 indexing (write-side).
  *
- * Uses jieba `cutForSearch()` (search-engine mode) to segment Chinese text,
+ * Uses jieba `cutForSearch()` (search-engine mode) to segment CJK text,
  * then joins tokens with spaces. The resulting string is stored in the FTS5
  * `content` column so that `unicode61` tokenizer can split it into meaningful
  * words — including both full words and their sub-words.
  *
  * Using `cutForSearch` (instead of `cut`) ensures that the index contains
  * the same sub-word tokens that `buildFtsQuery()` produces on the query side.
- * For example, "人工智能" is indexed as "人工 智能 人工智能", so queries for
- * either the full term or sub-words will match.
+ * For example, "\u5317\u4eac\u70e4\u9e2d" is indexed with tokens such as "\u5317\u4eac", "\u70e4\u9e2d", and
+ * "\u5317\u4eac\u70e4\u9e2d", so queries for either the full term or sub-words will match.
  *
  * Falls back to the original text if jieba is unavailable.
  *
- * Example (with jieba):
- *   "用户五月去日本旅行" → "用户 五月 去 日本 旅行"
- *   "人工智能的分支"     → "人工 智能 人工智能 的 分支"
+ * Example (with jieba, exact tokens depend on the dictionary):
+ *   "\u5317\u4eac\u70e4\u9e2d" -> a space-joined sequence of jieba search tokens
+ *   "\u5357\u4eac\u5e02\u957f\u6c5f\u5927\u6865" -> a space-joined sequence including sub-word tokens
  * Example (fallback):
- *   "用户五月去日本旅行" → "用户五月去日本旅行" (unchanged)
+ *   "travel plans API" -> "travel plans API" (unchanged)
  */
 export function tokenizeForFts(raw: string): string {
   const jieba = getJieba();
