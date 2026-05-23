@@ -16,17 +16,14 @@
  *   npx tsx read-local-memory.ts -d ./memory-tdai示例数据 -L L1 -f 'type=persona'
  */
 
-import { createRequire } from "node:module"
-import type { DatabaseSync } from "node:sqlite"
 import * as fs from "node:fs"
 import * as path from "node:path"
 import { parseArgs } from "node:util"
 
-const require = createRequire(import.meta.url)
-
-function requireNodeSqlite(): typeof import("node:sqlite") {
-  return require("node:sqlite") as typeof import("node:sqlite")
-}
+import {
+  openSqliteDatabase,
+  type SqliteDatabaseAdapter,
+} from "../../src/core/store/sqlite-runtime.js"
 
 // ─────────────────────────────────────────────
 // Types
@@ -362,13 +359,8 @@ function filtersToDisplayString(conditions: FilterCondition[]): string {
 // ─────────────────────────────────────────────
 
 /** 只读打开 SQLite 数据库 */
-function openSqliteReadonly(dbPath: string): DatabaseSync {
-  const { DatabaseSync: DbSync } = requireNodeSqlite()
-  const db = new DbSync(dbPath, { open: false })
-  // node:sqlite 没有直接的 readOnly 选项，用 query_only pragma 保证只读
-  db.open()
-  db.exec("PRAGMA query_only = ON")
-  return db
+function openSqliteReadonly(dbPath: string): SqliteDatabaseAdapter {
+  return openSqliteDatabase(dbPath, { readonly: true })
 }
 
 interface SqlQueryResult {
@@ -475,7 +467,7 @@ function mapL1Row(row: Record<string, unknown>): Record<string, unknown> {
   }
 }
 
-function querySqlite(db: DatabaseSync, level: "L0" | "L1", opts: CliOptions): SqlQueryResult {
+function querySqlite(db: SqliteDatabaseAdapter, level: "L0" | "L1", opts: CliOptions): SqlQueryResult {
   const table = level === "L0" ? "l0_conversations" : "l1_records"
   const timeCol = level === "L0" ? "timestamp" : "updated_time"
   const allowedColumns = level === "L0" ? L0_FILTER_COLUMNS : L1_FILTER_COLUMNS
@@ -513,7 +505,7 @@ function querySqlite(db: DatabaseSync, level: "L0" | "L1", opts: CliOptions): Sq
 // Query: L0 / L1 (SQLite)
 // ─────────────────────────────────────────────
 
-function querySqliteLevel(db: DatabaseSync, opts: CliOptions, level: "L0" | "L1") {
+function querySqliteLevel(db: SqliteDatabaseAdapter, opts: CliOptions, level: "L0" | "L1") {
   const { total, records: paged } = querySqlite(db, level, opts)
 
   const timeField = level === "L0" ? "timestamp" : "updatedAt"
@@ -883,7 +875,7 @@ function queryL3(opts: CliOptions) {
 // Overview: 全层级概览
 // ─────────────────────────────────────────────
 
-function showOverview(db: DatabaseSync, opts: CliOptions) {
+function showOverview(db: SqliteDatabaseAdapter, opts: CliOptions) {
   console.log()
   console.log(`🗂️  Memory 数据概览`)
   console.log(`   数据目录: ${opts.dataDir}`)
@@ -974,7 +966,7 @@ function formatBytes(bytes: number): string {
 // ─────────────────────────────────────────────
 
 /** 尝试打开 SQLite 数据库，不存在时返回 null */
-function tryOpenSqlite(dataDir: string): DatabaseSync | null {
+function tryOpenSqlite(dataDir: string): SqliteDatabaseAdapter | null {
   const dbPath = path.join(dataDir, SQLITE_DB_NAME)
   if (!fs.existsSync(dbPath)) {
     return null

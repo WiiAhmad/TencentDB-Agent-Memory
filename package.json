@@ -16,10 +16,10 @@
     }
   },
   "scripts": {
-    "build": "npm run build:plugin && npm run build:scripts",
+    "build": "tsdown && tsc -p scripts/migrate-sqlite-to-tcvdb/tsconfig.json --noEmitOnError false && tsc --project scripts/export-tencent-vdb/tsconfig.json && tsc --project scripts/read-local-memory/tsconfig.json",
     "build:plugin": "tsdown",
-    "build:scripts": "npm run build:migrate-sqlite-to-vdb && npm run build:export-tencent-vdb && npm run build:read-local-memory",
-    "prepack": "npm run build",
+    "build:scripts": "tsc -p scripts/migrate-sqlite-to-tcvdb/tsconfig.json --noEmitOnError false && tsc --project scripts/export-tencent-vdb/tsconfig.json && tsc --project scripts/read-local-memory/tsconfig.json",
+    "prepack": "tsdown && tsc -p scripts/migrate-sqlite-to-tcvdb/tsconfig.json --noEmitOnError false && tsc --project scripts/export-tencent-vdb/tsconfig.json && tsc --project scripts/read-local-memory/tsconfig.json",
     "build:migrate-sqlite-to-vdb": "tsc -p scripts/migrate-sqlite-to-tcvdb/tsconfig.json --noEmitOnError false",
     "migrate-sqlite-to-tcvdb": "node ./bin/migrate-sqlite-to-tcvdb.mjs",
     "build:export-tencent-vdb": "tsc --project scripts/export-tencent-vdb/tsconfig.json",
@@ -29,6 +29,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "bun:build": "bun run build",
+    "bun:test": "bun run --bun vitest run",
+    "bun:test:watch": "bun run --bun vitest",
+    "bun:test:coverage": "bun run --bun vitest run --coverage",
+    "bun:migrate-sqlite-to-tcvdb": "bun run --bun ./bin/migrate-sqlite-to-tcvdb.mjs",
+    "bun:export-tencent-vdb": "bun run --bun ./bin/export-tencent-vdb.mjs",
+    "bun:read-local-memory": "bun run --bun ./bin/read-local-memory.mjs",
     "postinstall": "bash scripts/openclaw-after-tool-call-messages.patch.sh 2>/dev/null || true"
   },
   "files": [

@@ -11,19 +11,24 @@
  * 3. `l0_conversations` — relational metadata table (session_key, role, message text, timestamps)
  * 4. `l0_vec` — vec0 virtual table for cosine similarity search on individual messages
  *
- * Dependencies: Node.js built-in `node:sqlite` (Node 22+) + `sqlite-vec` (from root workspace).
+ * Dependencies: `node:sqlite` under Node.js 22+ or `bun:sqlite` under Bun + `sqlite-vec`.
  *
  * Design:
- * - All operations are synchronous (DatabaseSync API).
+ * - All operations are synchronous (via the SQLite runtime adapter).
  * - Writes use manual BEGIN/COMMIT transactions for atomicity (metadata + vector).
  * - vec0 virtual table does NOT support ON CONFLICT, so upsert = delete + insert.
  * - Thread-safe via WAL mode.
  */
 
 import { createRequire } from "node:module";
-import type { DatabaseSync, StatementSync } from "node:sqlite";
 import type { MemoryRecord } from "../record/l1-writer.js";
 import type { EmbeddingProviderInfo } from "./embedding.js";
+import {
+  loadSqliteVec,
+  openSqliteDatabase,
+  type SqliteDatabaseAdapter,
+  type SqliteStatementAdapter,
+} from "./sqlite-runtime.js";
 import type {
   IMemoryStore,
   StoreCapabilities,
@@ -134,12 +139,7 @@ export interface VectorStoreInitResult {
   reason?: string;
 }
 
-// Use createRequire to load the experimental node:sqlite module
 const require = createRequire(import.meta.url);
-
-function requireNodeSqlite(): typeof import("node:sqlite") {
-  return require("node:sqlite") as typeof import("node:sqlite");
-}
 
 // ============================
 // FTS5 helpers (adapted from openclaw core hybrid.ts)
@@ -337,7 +337,7 @@ export interface L0FtsSearchResult {
 // ============================
 
 export class VectorStore implements IMemoryStore {
-  private db: DatabaseSync;
+  private db: SqliteDatabaseAdapter;
   private readonly dimensions: number;
   private readonly logger?: Logger;
 
@@ -362,47 +362,47 @@ export class VectorStore implements IMemoryStore {
   private vecTablesReady = false;
 
   // Prepared statements — L1 (initialized in init())
-  private stmtUpsertMeta!: StatementSync;
-  private stmtDeleteVec?: StatementSync;   // optional — only set when vecTablesReady
-  private stmtInsertVec?: StatementSync;   // optional — only set when vecTablesReady
-  private stmtDeleteMeta!: StatementSync;
-  private stmtGetMeta!: StatementSync;
-  private stmtSearchVec?: StatementSync;   // optional — only set when vecTablesReady
-  private stmtQueryBySessionId!: StatementSync;
-  private stmtQueryBySessionIdSince!: StatementSync;
-  private stmtQueryBySessionKey!: StatementSync;
-  private stmtQueryBySessionKeySince!: StatementSync;
-  private stmtQueryAll!: StatementSync;
-  private stmtQueryAllSince!: StatementSync;
+  private stmtUpsertMeta!: SqliteStatementAdapter;
+  private stmtDeleteVec?: SqliteStatementAdapter;   // optional — only set when vecTablesReady
+  private stmtInsertVec?: SqliteStatementAdapter;   // optional — only set when vecTablesReady
+  private stmtDeleteMeta!: SqliteStatementAdapter;
+  private stmtGetMeta!: SqliteStatementAdapter;
+  private stmtSearchVec?: SqliteStatementAdapter;   // optional — only set when vecTablesReady
+  private stmtQueryBySessionId!: SqliteStatementAdapter;
+  private stmtQueryBySessionIdSince!: SqliteStatementAdapter;
+  private stmtQueryBySessionKey!: SqliteStatementAdapter;
+  private stmtQueryBySessionKeySince!: SqliteStatementAdapter;
+  private stmtQueryAll!: SqliteStatementAdapter;
+  private stmtQueryAllSince!: SqliteStatementAdapter;
 
   // Prepared statements — L0 (initialized in init())
-  private stmtL0UpsertMeta!: StatementSync;
-  private stmtL0DeleteVec?: StatementSync;   // optional — only set when vecTablesReady
-  private stmtL0InsertVec?: StatementSync;   // optional — only set when vecTablesReady
-  private stmtL0DeleteMeta!: StatementSync;
-  private stmtL0GetMeta!: StatementSync;
-  private stmtL0SearchVec?: StatementSync;   // optional — only set when vecTablesReady
+  private stmtL0UpsertMeta!: SqliteStatementAdapter;
+  private stmtL0DeleteVec?: SqliteStatementAdapter;   // optional — only set when vecTablesReady
+  private stmtL0InsertVec?: SqliteStatementAdapter;   // optional — only set when vecTablesReady
+  private stmtL0DeleteMeta!: SqliteStatementAdapter;
+  private stmtL0GetMeta!: SqliteStatementAdapter;
+  private stmtL0SearchVec?: SqliteStatementAdapter;   // optional — only set when vecTablesReady
   /** L0 query for L1 runner: all messages for a session key */
-  private stmtL0QueryAll!: StatementSync;
+  private stmtL0QueryAll!: SqliteStatementAdapter;
   /** L0 query for L1 runner: messages after a timestamp cursor */
-  private stmtL0QueryAfter!: StatementSync;
+  private stmtL0QueryAfter!: SqliteStatementAdapter;
   /** L1 cursor-based pagination for migration (by PK) */
-  private stmtL1QueryMigrationCursor!: StatementSync;
+  private stmtL1QueryMigrationCursor!: SqliteStatementAdapter;
   /** L0 cursor-based pagination for migration (by PK) */
-  private stmtL0QueryMigrationCursor!: StatementSync;
+  private stmtL0QueryMigrationCursor!: SqliteStatementAdapter;
 
   // FTS5 tables availability flag (created best-effort — may be false if fts5 is not compiled in)
   private ftsAvailable = false;
 
   // Prepared statements — FTS5 L1 (initialized in init())
-  private stmtL1FtsInsert!: StatementSync;
-  private stmtL1FtsDelete!: StatementSync;
-  private stmtL1FtsSearch!: StatementSync;
+  private stmtL1FtsInsert!: SqliteStatementAdapter;
+  private stmtL1FtsDelete!: SqliteStatementAdapter;
+  private stmtL1FtsSearch!: SqliteStatementAdapter;
 
   // Prepared statements — FTS5 L0 (initialized in init())
-  private stmtL0FtsInsert!: StatementSync;
-  private stmtL0FtsDelete!: StatementSync;
-  private stmtL0FtsSearch!: StatementSync;
+  private stmtL0FtsInsert!: SqliteStatementAdapter;
+  private stmtL0FtsDelete!: SqliteStatementAdapter;
+  private stmtL0FtsSearch!: SqliteStatementAdapter;
 
   /**
    * Create a VectorStore instance.
@@ -414,9 +414,10 @@ export class VectorStore implements IMemoryStore {
     this.dimensions = dimensions;
     this.logger = logger;
 
-    // Open database with extension support enabled
-    const { DatabaseSync: DbSync } = requireNodeSqlite();
-    this.db = new DbSync(dbPath, { allowExtension: true });
+    this.db = openSqliteDatabase(dbPath, {
+      allowExtension: true,
+      timeout: 5000,
+    });
 
     // Set busy timeout so concurrent processes retry instead of failing with SQLITE_BUSY
     this.db.exec("PRAGMA busy_timeout = 5000");
@@ -454,12 +455,8 @@ export class VectorStore implements IMemoryStore {
    *   so the caller can schedule a full re-embed.
    */
   init(providerInfo?: EmbeddingProviderInfo): VectorStoreInitResult {
-    // Load sqlite-vec extension (same approach as root project's sqlite-vec.ts)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const sqliteVec = require("sqlite-vec");
-      this.db.enableLoadExtension(true);
-      sqliteVec.load(this.db);
+      loadSqliteVec(this.db);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger?.error(

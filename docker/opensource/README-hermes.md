@@ -1,33 +1,34 @@
-# Hermes + TDAI Memory — 一体化开源镜像
+# Hermes + TDAI Memory — Unified Open-Source Image
 
-预装 Hermes Agent + TDAI Memory 插件，单容器同时运行两个服务。
-只需配置一个 API Key 即可启用 Hermes 对话 + 四层记忆系统。
+Hermes Agent and the TDAI Memory plugin are preinstalled, so a single container runs both services together.
+You only need to configure one API key to enable Hermes conversations plus the four-layer memory system.
 
-## 架构
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│                     容器内部                          │
+│                  Inside the container                │
 │                                                      │
 │  ┌──────────────────────┐    ┌─────────────────────┐ │
 │  │  Hermes Agent        │    │  TDAI Memory        │ │
 │  │  (Python)            │───▶│  Gateway (Node.js)  │ │
 │  │                      │HTTP│  :8420              │ │
 │  │  memory_tencentdb    │    │                     │ │
-│  │  plugin (内置)       │    │  SQLite 本地存储     │ │
+│  │  plugin (built in)   │    │  Local SQLite store │ │
 │  └──────────────────────┘    └─────────────────────┘ │
 │                                                      │
-│  统一模型配置（Hermes + TDAI 共用一套 MODEL_* 变量） │
+│  Unified model config (Hermes + TDAI share one set  │
+│  of MODEL_* variables)                              │
 └──────────────────────────────────────────────────────┘
 ```
 
-## 快速开始
+## Quick start
 
 ```bash
-# 构建（不依赖项目源码，任意目录均可）
+# Build (does not depend on project source code; can be run from any directory)
 docker build -f Dockerfile.hermes -t hermes-memory .
 
-# 运行（后台常驻，Gateway 自动启动）
+# Run (stays in the background; Gateway starts automatically)
 docker run -d \
   --name hermes-memory \
   --restart unless-stopped \
@@ -39,96 +40,96 @@ docker run -d \
   -v hermes_data:/opt/data \
   hermes-memory
 
-# 验证 Gateway
+# Verify the Gateway
 curl http://localhost:8420/health
 
-# 进入 Hermes 对话
+# Enter a Hermes conversation
 docker exec -it hermes-memory hermes
 ```
 
-> 镜像内置了腾讯云 DeepSeek-V3.2 的默认值，如果你使用该模型，`MODEL_BASE_URL`/`MODEL_NAME`/`MODEL_PROVIDER` 可以省略，只传 `MODEL_API_KEY` 即可。
+> The image includes default values for Tencent Cloud DeepSeek-V3.2. If you are using that model, you can omit `MODEL_BASE_URL` / `MODEL_NAME` / `MODEL_PROVIDER` and pass only `MODEL_API_KEY`.
 
-## 工作原理
+## How it works
 
-容器启动时（`CMD`）自动执行以下步骤：
+When the container starts (`CMD`), it automatically performs these steps:
 
-1. 将 `MODEL_*` 环境变量同步到 Gateway（`export TDAI_LLM_*`）
-2. 生成 `/opt/data/config.yaml`（Hermes 配置，含模型参数和 `memory.provider: memory_tencentdb`）
-3. 生成 `/opt/data/.env`（写入 `OPENAI_API_KEY`，供 Hermes 读取）
-4. 前台启动 TDAI Memory Gateway（Node.js，监听 :8420，保持容器常驻）
+1. Sync `MODEL_*` environment variables to the Gateway (`export TDAI_LLM_*`)
+2. Generate `/opt/data/config.yaml` (Hermes config, including model parameters and `memory.provider: memory_tencentdb`)
+3. Generate `/opt/data/.env` (writes `OPENAI_API_KEY` for Hermes to read)
+4. Start the TDAI Memory Gateway in the foreground (Node.js, listens on :8420, keeps the container alive)
 
-通过 `docker exec -it hermes-memory hermes` 进入对话时，Hermes 从 `$HERMES_HOME`（`/opt/data`）读取上述配置文件，自动连接已运行的 Gateway。memory_tencentdb 插件通过 HTTP 与本地 Gateway 通信，完成对话采集、记忆提取、场景构建和用户画像生成（L0→L1→L2→L3 四层 pipeline）。
+When you enter a conversation with `docker exec -it hermes-memory hermes`, Hermes reads the config files above from `$HERMES_HOME` (`/opt/data`) and automatically connects to the running Gateway. The `memory_tencentdb` plugin communicates with the local Gateway over HTTP to handle conversation capture, memory extraction, scene construction, and persona generation through the four-layer L0→L1→L2→L3 pipeline.
 
-## 环境变量
+## Environment variables
 
-### 统一模型配置（Hermes + TDAI 共用）
+### Unified model configuration (shared by Hermes + TDAI)
 
-| 变量 | 默认值 | 说明 |
+| Variable | Default | Description |
 |------|--------|------|
-| `MODEL_API_KEY` | - | LLM API Key（**必填，运行时通过 `-e` 传入**） |
-| `MODEL_BASE_URL` | `https://api.lkeap.cloud.tencent.com/v1` | LLM API 地址 |
-| `MODEL_NAME` | `deepseek-v3.2` | 模型名称 |
-| `MODEL_PROVIDER` | `custom` | 模型 provider: custom/openrouter/anthropic/openai/gemini |
+| `MODEL_API_KEY` | - | LLM API key (**required; pass it at runtime with `-e`**) |
+| `MODEL_BASE_URL` | `https://api.lkeap.cloud.tencent.com/v1` | LLM API endpoint |
+| `MODEL_NAME` | `deepseek-v3.2` | Model name |
+| `MODEL_PROVIDER` | `custom` | Model provider: custom/openrouter/anthropic/openai/gemini |
 
-用户只需配置上述 `MODEL_*` 变量，容器启动时自动同步到 Hermes（`config.yaml` + `.env`）和 Gateway（`TDAI_LLM_*` 环境变量）。
+Users only need to configure the `MODEL_*` variables above. At container startup they are automatically synced to Hermes (`config.yaml` + `.env`) and the Gateway (`TDAI_LLM_*` environment variables).
 
-### 服务配置
+### Service configuration
 
-| 变量 | 默认值 | 说明 |
+| Variable | Default | Description |
 |------|--------|------|
-| `TDAI_GATEWAY_PORT` | `8420` | Gateway 端口 |
-| `TDAI_GATEWAY_HOST` | `0.0.0.0` | Gateway 绑定地址 |
-| `TDAI_DATA_DIR` | `/opt/data/tdai-memory` | 记忆数据目录 |
-| `HERMES_HOME` | `/opt/data` | Hermes 数据目录 |
+| `TDAI_GATEWAY_PORT` | `8420` | Gateway port |
+| `TDAI_GATEWAY_HOST` | `0.0.0.0` | Gateway bind address |
+| `TDAI_DATA_DIR` | `/opt/data/tdai-memory` | Memory data directory |
+| `HERMES_HOME` | `/opt/data` | Hermes data directory |
 
-## 数据持久化
+## Data persistence
 
-所有数据存储在 `/opt/data` volume 中：
+All data is stored in the `/opt/data` volume:
 
 ```
 /opt/data/
-├── tdai-memory/          # TDAI 记忆数据 (SQLite + 场景文件)
-│   ├── memories.sqlite   # L0/L1 数据
-│   ├── scene_blocks/     # L2 场景文件
-│   ├── persona.md        # L3 用户画像
-│   └── checkpoint.json   # Pipeline 状态
-├── sessions/             # Hermes 会话记录
-├── skills/               # Hermes 技能
-├── config.yaml           # Hermes 配置（启动时自动生成）
-├── .env                  # 环境变量（启动时自动生成）
-└── gateway.log           # Gateway 日志
+├── tdai-memory/          # TDAI memory data (SQLite + scene files)
+│   ├── memories.sqlite   # L0/L1 data
+│   ├── scene_blocks/     # L2 scene files
+│   ├── persona.md        # L3 persona
+│   └── checkpoint.json   # Pipeline state
+├── sessions/             # Hermes session history
+├── skills/               # Hermes skills
+├── config.yaml           # Hermes config (generated automatically at startup)
+├── .env                  # Environment variables (generated automatically at startup)
+└── gateway.log           # Gateway logs
 ```
 
-## 故障排查
+## Troubleshooting
 
 ```bash
-# 查看 Gateway 日志
+# View Gateway logs
 docker exec hermes-memory cat /opt/data/tdai-memory/gateway.log
 
-# 查看 Gateway 健康状态
+# Check Gateway health
 docker exec hermes-memory curl -s http://localhost:8420/health | python3 -m json.tool
 
-# 手动测试记忆召回
+# Manually test memory recall
 docker exec hermes-memory curl -s -X POST http://localhost:8420/recall \
   -H "Content-Type: application/json" \
   -d '{"query":"test","session_key":"debug"}'
 
-# 查看生成的 Hermes 配置
+# View the generated Hermes config
 docker exec hermes-memory cat /opt/data/config.yaml
 
-# 查看环境变量同步结果
+# View environment variable sync results
 docker exec hermes-memory env | grep -E '(MODEL_|TDAI_LLM_)'
 
-# 进入容器调试
+# Enter the container for debugging
 docker exec -it hermes-memory bash
 ```
 
-## 构建说明
+## Build notes
 
-Dockerfile 不依赖本地源码 COPY，也不依赖 root 用户：
+The Dockerfile does not depend on copying local source code and does not depend on the root user:
 
-- **TDAI Memory Gateway**：通过 `npm install @tencentdb-agent-memory/memory-tencentdb@latest` 从 npm registry 获取
-- **Hermes Agent**：通过官方安装脚本从 GitHub 获取，安装到 `/usr/local/lib/hermes-agent/`
-- **memory_tencentdb 插件**：npm 包内已包含 `hermes-plugin/` 目录，构建时自动 symlink 到 Hermes 内置插件路径（`/usr/local/lib/hermes-agent/plugins/memory/`）
+- **TDAI Memory Gateway**: fetched from the npm registry via `npm install @tencentdb-agent-memory/memory-tencentdb@latest`
+- **Hermes Agent**: fetched from GitHub via the official install script and installed to `/usr/local/lib/hermes-agent/`
+- **memory_tencentdb plugin**: the npm package already includes the `hermes-plugin/` directory, which is automatically symlinked during the build into Hermes's built-in plugin path (`/usr/local/lib/hermes-agent/plugins/memory/`)
 
-容器内所有运行时路径均为绝对路径，不依赖 `$HOME` 或特定用户，可以非 root 用户运行。
+All runtime paths inside the container are absolute paths and do not depend on `$HOME` or a specific user, so the image can run as a non-root user.

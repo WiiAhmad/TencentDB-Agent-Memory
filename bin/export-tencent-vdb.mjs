@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 // Thin launcher: loads the precompiled VDB export script.
-// Build: npm run build:export-tencent-vdb
-// Usage: npm run export-tencent-vdb -- [args]  or  node ./bin/export-tencent-vdb.mjs [args]
+// Build first: npm run build:export-tencent-vdb or bun run build:export-tencent-vdb
+// Usage: npm run export-tencent-vdb -- [args]  or  bun run bun:export-tencent-vdb -- [args]
 
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -17,4 +17,4 @@ if (!fs.existsSync(entryScript)) {
   process.exit(1);
 }
 
-import(entryScript);
+import(pathToFileURL(entryScript).href);

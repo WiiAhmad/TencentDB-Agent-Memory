@@ -20,7 +20,7 @@ Analyze the [New Messages to Extract] together with the [Previous Scene], then d
 - Inherit: if there is no obvious switch, continue using the previous scene.
 - Switching conditions: the user gives an explicit instruction (such as "change the topic"), their intent changes, or they introduce an independent new goal.
 - A conversation may contain only one scene, or multiple scenes if the topic shifts several times.
-- Naming rule: the scene_name value itself must be written in Chinese language, as a single sentence meaning "I (AI) am doing [target activity] with [user identity]" (30-50 Chinese characters, globally unique).
+- Naming rule: the scene_name value itself must be written entirely in English, as a single sentence meaning "I (AI) am doing [target activity] with [user identity]" (8-15 English words, globally unique).
 
 ---
 
@@ -68,7 +68,7 @@ Return one valid JSON array and nothing else. Each item in the array is a scene 
 
 [
   {
-    "scene_name": "A Chinese-language scene name, either newly generated or inherited",
+    "scene_name": "An English-language scene name, either newly generated or inherited",
     "message_ids": ["message_id_1", "message_id_2"],
     "memories": [
       {
@@ -89,7 +89,7 @@ metadata field rules:
 If the whole conversation segment contains no meaningful memories, you must still output the scene segmentation result, with memories as an empty array:
 [
   {
-    "scene_name": "Chinese-language scene name",
+    "scene_name": "English-language scene name",
     "message_ids": ["message_id_1", "message_id_2"],
     "memories": []
   }

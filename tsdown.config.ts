@@ -23,8 +23,8 @@ export default defineConfig({
     neverBundle: (id) => {
       // openclaw SDK — always external
       if (id === "openclaw" || id.startsWith("openclaw/")) return true;
-      // node: builtins
-      if (id.startsWith("node:")) return true;
+      // runtime builtins
+      if (id.startsWith("node:") || id.startsWith("bun:")) return true;
       // all declared dependencies
       for (const dep of collectExternalDependencies()) {
         if (id === dep || id.startsWith(`${dep}/`)) return true;
