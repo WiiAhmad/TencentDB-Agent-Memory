@@ -13,7 +13,7 @@ const entryScript = path.resolve(thisDir, "../scripts/export-tencent-vdb/dist/ex
 
 if (!fs.existsSync(entryScript)) {
   console.error("❌  Precompiled artifact not found: " + entryScript);
-  console.error("   Please run first: npm run build:export-tencent-vdb");
+  console.error("   Please run first: npm run build:export-tencent-vdb or bun run build:export-tencent-vdb");
   process.exit(1);
 }
 

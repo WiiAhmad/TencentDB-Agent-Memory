@@ -10,13 +10,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "types": ["node"],
-    "paths": {
-      "node-llama-cpp": ["./node-llama-cpp.d.ts"]
-    },
     "outDir": "dist",
     "rootDir": "../.."
   },
   "files": [
+    "../runtime-modules.d.ts",
     "cli-entry.ts",
     "sqlite-to-tcvdb.ts",
     "config-write.ts",

@@ -14,6 +14,6 @@
     "declaration": false,
     "sourceMap": false
   },
-  "files": ["read-local-memory.ts"],
+  "files": ["../runtime-modules.d.ts", "read-local-memory.ts"],
   "exclude": ["dist", "node_modules"]
 }

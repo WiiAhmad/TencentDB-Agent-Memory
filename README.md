@@ -134,6 +134,27 @@ graph LR
 
 
 ### 1. OpenClaw
+### Runtime support
+
+This repository supports both Node 22 and Bun workflows for build, test, and shipped CLI commands:
+
+```bash
+npm install
+npm run build
+npm test
+```
+
+```bash
+bun install
+bun run build
+bun run bun:test
+bun run bun:read-local-memory -- --help
+```
+
+`bun:test` runs the repository's Vitest suite through Bun's package runner. The shipped CLI aliases use Bun's runtime directly.
+
+When the local memory backend is enabled, the plugin uses `node:sqlite` under Node 22 and `bun:sqlite` under Bun while keeping the same SQLite schema and `sqlite-vec` behavior.
+
 ### 1.1 Install the plugin
 
 ```bash

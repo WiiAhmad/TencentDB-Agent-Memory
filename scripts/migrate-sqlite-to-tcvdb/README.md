@@ -5,6 +5,7 @@ An offline migration tool for moving memory-tdai data from local SQLite storage 
 ## Prerequisites
 
 - Node.js >= 22.16.0
+- Bun is also supported through the explicit `bun:*` package scripts
 - The plugin has already been installed via `openclaw plugins install`
 - The migration script has been compiled (see below)
 
@@ -14,15 +15,17 @@ The migration script is written in TypeScript and must be compiled before runnin
 
 ```bash
 npm run build:migrate-sqlite-to-vdb
+# or
+bun run build:migrate-sqlite-to-vdb
 ```
 
-The compiled output is written to `scripts/migrate-sqlite-to-tcvdb/dist/` and can be run directly with Node.
+The compiled output is written to `scripts/migrate-sqlite-to-tcvdb/dist/` and can be run through the Node or Bun package scripts.
 
 ## Usage
 
 ```bash
 # Preflight mode (inspect source data only, do not write anything)
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -33,7 +36,7 @@ npm run migrate:sqlite-to-tcvdb -- \
   --dry-run
 
 # Run the migration
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -44,11 +47,24 @@ npm run migrate:sqlite-to-tcvdb -- \
   --yes
 ```
 
+With Bun:
+
+```bash
+bun run bun:migrate-sqlite-to-tcvdb -- --dry-run \
+  --plugin-data-dir ~/.openclaw/memory-tdai \
+  --openclaw-config-path ~/.openclaw/openclaw.json \
+  --tcvdb-url http://127.0.0.1:80 \
+  --tcvdb-username root \
+  --tcvdb-api-key-env TCVDB_API_KEY \
+  --tcvdb-database agent_memory_prod \
+  --tcvdb-embedding-model bge-large-zh
+```
+
 ### More examples
 
 ```bash
 # Pass the API key directly (instead of using an environment variable)
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -61,7 +77,7 @@ npm run migrate:sqlite-to-tcvdb -- \
 
 ```bash
 # Use a custom SQLite path (when the database is not located at the default vectors.db path)
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --sqlite-path /backup/2026-04/vectors-snapshot.db \
   --openclaw-config-path ~/.openclaw/openclaw.json \
@@ -75,7 +91,7 @@ npm run migrate:sqlite-to-tcvdb -- \
 
 ```bash
 # Migrate only the L1 memory layer (skip raw L0 messages and Profile)
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -89,7 +105,7 @@ npm run migrate:sqlite-to-tcvdb -- \
 
 ```bash
 # Migrate only L0 and L1 (do not migrate Profile)
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -103,7 +119,7 @@ npm run migrate:sqlite-to-tcvdb -- \
 
 ```bash
 # English-language corpora: use English BM25 tokenization
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -117,7 +133,7 @@ npm run migrate:sqlite-to-tcvdb -- \
 
 ```bash
 # Disable BM25 sparse vectors (use dense-vector retrieval only)
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -131,7 +147,7 @@ npm run migrate:sqlite-to-tcvdb -- \
 
 ```bash
 # Migrate data only; do not update openclaw.json or manifest automatically (manage config manually)
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -146,7 +162,7 @@ npm run migrate:sqlite-to-tcvdb -- \
 
 ```bash
 # Incremental migration: allow the target database to already contain data and skip the non-empty check
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -161,7 +177,7 @@ npm run migrate:sqlite-to-tcvdb -- \
 
 ```bash
 # Write the migration summary to a JSON file (useful for CI / automation pipelines)
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://127.0.0.1:80 \
@@ -176,7 +192,7 @@ npm run migrate:sqlite-to-tcvdb -- \
 
 ```bash
 # Set a custom timeout and alias
-npm run migrate:sqlite-to-tcvdb -- \
+npm run migrate-sqlite-to-tcvdb -- \
   --plugin-data-dir ~/.openclaw/memory-tdai \
   --openclaw-config-path ~/.openclaw/openclaw.json \
   --tcvdb-url http://10.0.1.50:80 \

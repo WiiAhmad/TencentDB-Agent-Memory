@@ -2,6 +2,13 @@
 
 The `openclaw memory-tdai` command namespace provides offline data management tools.
 
+## Runtime support
+
+The offline CLI workflows in this repository are supported in both environments:
+
+- Node 22 + npm
+- Bun via the explicit `bun:*` package scripts
+
 ## seed — Import historical conversation data
 
 Import a historical conversation JSON file into the memory pipeline and run the full L0→L1→L2→L3 flow. This is useful for:
