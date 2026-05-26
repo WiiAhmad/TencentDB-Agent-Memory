@@ -4,6 +4,14 @@ This file records all notable changes to the `@tencentdb-agent-memory/memory-ten
 
 ---
 
+## [Unreleased]
+
+### 🐛 修复
+
+- **Hermes Docker 镜像 `config.yaml` 缺少 `api_key` 字段**：`Dockerfile.hermes` 的 CMD 脚本将 API Key 写入了 `.env` 的 `OPENAI_API_KEY`，但未写入 `config.yaml` 的 `model.api_key`，导致 `provider: custom` 时 Hermes 无法找到认证凭据（报 401 Authentication Fails）。现修复为在 `config.yaml` 的 `model` 段同步写入 `api_key: "${MODEL_API_KEY}"`。
+
+---
+
 ## [0.3.5] - 2026-05-15
 
 ### 🐛 Fixes
